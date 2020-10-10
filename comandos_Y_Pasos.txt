@@ -1,0 +1,264 @@
+## INICIO ##
+
+--Comando para iniciar un archivo package.json
+npm init
+
+--Creamos un archivo gitignore para los modulos de node
+
+--Instalaremos la dependencia Sequelize (el ORM)
+
+npm install --save sequelize
+
+--La base de datos que vamos a usar en este caso Postgresql
+
+npm install --save pg pg-hstore
+
+--Ahora necesitaremos instalar el cliente de Sequelize de forma local para poder crear modelos, migraciones, etc.
+
+npm install --save sequelize-cli
+
+
+
+## Sequelize ##
+
+--Correr el siguiente comando para que Sequelize incluya todos los archivos y estructura necesaria para poder empezar a trabajar 
+     con nuestras base de datos
+
+node_modules/.bin/sequelize init
+
+npx sequelize-li initc
+
+--Esto creará los siguientes directorios en nuestro proyecto
+
+applicationFolder
+  |-config
+    |-config.js
+  |-models
+    |-index.js
+  |-migrations
+  |-seeders
+
+  --Hacer las configuraciones necesarias en config.js con respecto al usuario, password, etc
+
+  "development": {   
+    "username": "postgres",     
+    "password": "secret",     
+    "database": "postgres",     
+    "host": "127.0.0.1",     
+    "dialect": "postgres"   
+}
+
+
+
+
+
+## Data base ##
+
+-- Crear la base de datos en DBeaver
+-- Hacer la conexión 
+
+
+
+
+
+## Modelos y Migraciones ##
+
+(Para esto ya deberiamos de haber tenido el diagrama ER)
+
+-- Hacemos un analisis de la tabla correspondiente y construimos los modelos 
+
+--Para crear un modelo y una migración con sequelize cli deberemos de correr el siguiente comando en la terminal
+
+ejemplo:
+
+el comando inicial          generar modelo   nombre del modelo        attributos del modelo 
+node_modules/.bin/sequelize model:generate --name Usuarios --attributes nombre:string, apellidos:string, edad:integer
+
+también con npx sequelize-cli 
+
+Esto creará dos archivos un archivo Usuarios en /models y otro XXXXXXXXXXXXXX-create-usuarios.js en /migrations
+
+
+--Para este paso necesitaremos escribir el siguiente comando en consola, 
+    esto creará todas las tablas en base a todos los archivos creados sobre el directorio /migrations
+    
+      node_modules/.bin/sequelize db:migrate
+ó
+       npx sequelize-cli db:migrate
+
+
+
+--Para hacer una sola migración
+
+   comando inicial    migracion  a    archivo que queremos migrar a la base de datos 
+   npx sequelize-cli db:migrate --to 20200925010014-create-users.js
+
+--Para deshacer la migración (quitar la tabla en nuestra base de datos)
+
+     node_modules/.bin/sequelize db:migrate:undo
+ó
+       npx sequelize-cli db:migrate:undo
+
+--Para deshacer todas las migraciones
+
+     node_modules/.bin/sequelize db:migrate:undo:all
+        ó
+     npx sequelize db:migrate:undo:all
+
+
+
+*Nota: las migraciones se realizaran en base al orden de creación. Es decir, si nuestra primera migración
+       fue usuarios y después creamos otra migración para productos entonces primero se creará la tabla 
+       usuarios y después la tabla productos, esto hay que tenerlo muy en cuenta cuando vamos a hacer relaciones 
+       entre tablas ya que no podremos relacionar una tabla de origen con otra que no haya sido creada previamente.
+
+
+## Asociaciones y llaves foráneas ##
+
+--Para realizar una relación entre tablas lo haremos de la siguiente forma:
+
+    Ir a la migración que tenga una llave foránea
+
+    Posicionarnos en el atributo/propiedad que será llave foránea
+
+    Agregar la propiedad references
+
+    La propiedad references incluye dos sub propiedades:
+
+    - model ➡ modelo a la que estamos haciendo referencia
+    - key ➡ columna/atributo de la tabla de referencia
+
+    role_id: {
+        type: Sequelize.INTEGER,
+        references: {
+          model: 'roles',
+          key: 'id'
+        }
+      }
+
+    Ir a los modelos en los que se harán las relaciones
+
+    Colocar la relación dentro de static associate(models)
+
+    Usar el modelo y elegir si el modelo pertenece a otro modelo por ejemplo user_roles pertenece al modelo usuarios y el tipo de relación es de
+
+    un rol tiene varios usuarios y un usuario tiene uno o varios roles
+
+    user_roles.belongsToMany(models.users, {
+        as: 'users',
+        foreignKey: 'user_id'
+    });
+
+
+// A los CreateAt y UpdateAt Agregar un valor por default como ---->>   defaultValue: Sequelize.NOW
+// Por qué el id de sessions es un string?
+
+## Creando los modelos y las migraciones ##
+
+--Independientes
+
+ users
+
+npx sequelize-cli model:generate --name users --attributes email:string,first_name:string,last_name:string,password:string,token:string,active:boolean
+
+ tags
+
+npx sequelize-cli model:generate --name tags --attributes name:string
+
+ sessions
+
+npx sequelize-cli model:generate --name sessions --attributes data:string
+
+ roles
+
+npx sequelize-cli model:generate --name roles --attributes name:string
+
+ product-statuses
+
+npx sequelize-cli model:generate --name product_statuses --attributes name:string
+
+ coupons
+
+npx sequelize-cli model:generate --name coupons --attributes code:string,description:text,active:boolean,value:decimal,multiple:boolean,start_date:date,end_date:date
+
+
+// Recordar que a parent_id de categories se hace referencia a si misma por las subcategorias 
+// también que su valor no debe ser nulo
+
+--Dependientes
+
+  categories
+
+npx sequelize-cli model:generate --name categories --attributes name:string,parent_id:integer
+
+  products
+
+npx sequelize-cli model:generate --name products --attributes sku:string,name:string,description:text,product_status_id:integer,regular_price:decimal,discount_price:decimal,quantity:integer,taxable:boolean
+
+  sales_orders
+
+npx sequelize-cli model:generate --name sales_orders --attributes order_date:date,total:decimal,coupon_id:integer,session_id:string,user_id:integer
+
+cc_transactions
+
+npx sequelize-cli model:generate --name cc_transactions --attributes code:string,order_id:integer,transdate:date,processor:string,processor_trans_id:string,amount:decimal,cc_num:string,cc_type:string,response:text
+
+  order_products
+
+npx sequelize-cli model:generate --name order_products --attributes order_id:integer,sku:string,name:string,description:text,price:decimal,quantity:integer,subtotal:decimal
+
+  product-categories
+
+npx sequelize-cli model:generate --name product-categories --attributes category_id:integer,product_id:integer
+
+  product-tags
+
+npx sequelize-cli model:generate --name product-tags --attributes product_id:integer,tag_id:integer
+
+  user_roles
+
+npx sequelize-cli model:generate --name user_roles --attributes user_id:integer,role_id:integer
+
+
+-----Hacemos el migrate para que se vean en la base de datos 
+
+  npx sequelize-cli db:migrate
+
+
+## SECOND PART ##
+
+Para crear las relaciones
+dentro de static associate(models){
+
+ users.hasMany(models.user_roles, {
+        as: 'user_roles',
+        foreignKey: 'id'
+      });
+ users.hasMany(models.user_roles, {
+        as: 'user_roles',
+        foreignKey: 'id'
+      });      
+
+      }
+
+  Se coloca el   modelo  despues el tipo de relacion en este caso tiene muchas (hasMany) entre parentesis
+       colocamos dos argumentos uno el modelo hacia donde va la relacion en este caso user_roles
+       models.user_roles y como segundo un objeto que tenga as y ahí colocamos el modelo hacia donde va la relacion
+       despues foreignKey con el nombre id, no siempre es id, luego puede ser user_id o tag_id
+
+  
+
+  y en el otro modelo (user_roles)
+     
+     user_roles.belongsToMany(models.users, {
+       as:'users',
+       foreignKey: 'user_id'
+     });
+     user_roles.belongsToMany(models.roles, {
+       as:'roles',
+       foreignKey: 'role_id'
+     });
+     
+para ello ya deberia de estar creados los modelos y echas las Migraciones y declaradas las DataType
+
+///
